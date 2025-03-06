@@ -1,6 +1,8 @@
-from utils import plot_loss, plot_accuracy
+import torch
 
-def train_and_evaluate(device, net, x, y, x_pos, x_neg, test_loader):
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def train_and_evaluate(net, x, y, x_pos, x_neg, test_loader):
     """Train the model, compute accuracy, and generate plots."""
     # Train and collect loss values
     net.train(x_pos, x_neg)
@@ -16,6 +18,5 @@ def train_and_evaluate(device, net, x, y, x_pos, x_neg, test_loader):
     test_accuracy = net.predict(x_te).eq(y_te).float().mean().item() * 100
     print(f'Test Accuracy: {test_accuracy:.2f}%')
 
-    # Generate plots
-    plot_loss(loss_values, filename="topological_loss.png")
-    plot_accuracy(net.accuracy_history, filename="accuracy.png")
+    return loss_values, net
+    

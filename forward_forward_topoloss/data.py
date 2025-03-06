@@ -4,6 +4,8 @@ from torchvision.transforms import Compose, ToTensor, Normalize, Lambda
 from torch.utils.data import DataLoader
 from utils import overlay_y_on_x
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
 
     transform = Compose([
@@ -25,7 +27,7 @@ def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
 
     return train_loader, test_loader
 
-def prepare_data(device):
+def prepare_data():
     """Load MNIST dataset and preprocess batch for training."""
     train_loader, test_loader = MNIST_loaders()
     x, y = next(iter(train_loader))

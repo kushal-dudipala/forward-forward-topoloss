@@ -4,15 +4,17 @@ from torch.optim import Adam
 from loss import TopoLoss, LaplacianPyramid
 from utils import overlay_y_on_x
 from tqdm import tqdm
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):
-    def __init__(self, dims):
+    def __init__(self, dims, checkpoint_path="checkpoints/model_checkpoint.pth"):
         super().__init__()
         self.layers = []
         for d in range(len(dims) - 1):
             self.layers += [Layer(dims[d], dims[d + 1]).cuda()]
+        self.checkpoint_path = checkpoint_path
         self.accuracy_history = []
         
     def predict(self, x):
@@ -28,12 +30,37 @@ class Net(nn.Module):
         return goodness_per_label.argmax(1)
 
     def train(self, x_pos, x_neg):
+        """Trains all layers and saves the model after training."""
         h_pos, h_neg = x_pos, x_neg
         acc = self.predict(x_pos).eq(torch.argmax(x_pos, dim=1)).float().mean().item() * 100
         self.accuracy_history.append(acc)
+        
         for i, layer in enumerate(self.layers):
             print(f'Training layer {i}...')
             h_pos, h_neg = layer.train(h_pos, h_neg)
+        
+        self.save_checkpoint()
+        
+    def save_checkpoint(self):
+        """Saves model state after training."""
+        os.makedirs("checkpoints", exist_ok=True)
+        checkpoint = {
+            "model_state": self.state_dict(),
+            "accuracy_history": self.accuracy_history,
+        }
+        torch.save(checkpoint, self.checkpoint_path)
+        print(f"✅ Model saved after training: {self.checkpoint_path}")
+    
+    def load_checkpoint(self):
+        """Loads model state if checkpoint exists."""
+        if os.path.exists(self.checkpoint_path):
+            checkpoint = torch.load(self.checkpoint_path)
+            self.load_state_dict(checkpoint["model_state"])
+            self.accuracy_history = checkpoint["accuracy_history"]
+            print(f"🔄 Loaded saved model from: {self.checkpoint_path}")
+
+    def get_accuracy_history(self):
+        return self.accuracy_history
 
 class Layer(nn.Linear):
     def __init__(self, in_features, out_features,
