@@ -2,7 +2,7 @@ import torch
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor, Normalize, Lambda
 from torch.utils.data import DataLoader
-from utils import overlay_y_on_x
+from utils import overlay_y_on_x 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
