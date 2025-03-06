@@ -11,22 +11,22 @@ Main execution function.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(1234)
-train_loader, test_loader, x, y, x_pos, x_neg = prepare_data()
+train_loader, test_loader, x_train, y_train, x_pos_train, x_neg_train, x_val, y_val = prepare_data()
 
 net = Net([784, 500, 500, 10])  
 
-for data, name in zip([x, x_pos, x_neg], ['orig', 'pos', 'neg']):
+for data, name in zip([x_train, x_pos_train, x_neg_train], ['orig', 'pos', 'neg']):
     visualize_sample(data, name)
 
-# Train and collect loss & accuracy (saves checkpoints)
-loss_values, net = train_and_evaluate(net, x, y, x_pos, x_neg, test_loader)
+# Train with validation tracking
+net.train(x_pos_train, x_neg_train, y_train, x_val, y_val)
 
-# Collect accuracy history per layer
-accuracy_histories = net.get_accuracy_history()
+# Collect accuracy history
+train_acc_hist, val_acc_hist = net.get_accuracy_history()
 
-# Plot results
+# Generate plots
 plot_loss([layer.loss_history for layer in net.layers], name="topological_loss")
-plot_accuracy(accuracy_histories, name="accuracy")
+plot_accuracy(train_acc_hist, val_acc_hist, name="accuracy")
 
 
 

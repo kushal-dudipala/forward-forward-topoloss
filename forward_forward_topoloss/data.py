@@ -30,11 +30,12 @@ def MNIST_loaders(train_batch_size=50000, test_batch_size=10000):
 def prepare_data():
     """Load MNIST dataset and preprocess batch for training."""
     train_loader, test_loader = MNIST_loaders()
-    x, y = next(iter(train_loader))
-    x, y = x.to(device), y.to(device)
+    x_train, y_train = next(iter(train_loader))
+    x_train, y_train = x_train.to(device), y_train.to(device)
+    x_pos_train = overlay_y_on_x(x_train, y_train)
+    rnd = torch.randperm(x_train.size(0))
+    x_neg_train = overlay_y_on_x(x_train, y_train[rnd])
 
-    x_pos = overlay_y_on_x(x, y)
-    rnd = torch.randperm(x.size(0))
-    x_neg = overlay_y_on_x(x, y[rnd])
-
-    return train_loader, test_loader, x, y, x_pos, x_neg
+    x_val, y_val = next(iter(test_loader))  
+    x_val, y_val = x_val.to(device), y_val.to(device)
+    return train_loader, test_loader, x_train, y_train, x_pos_train, x_neg_train, x_val, y_val

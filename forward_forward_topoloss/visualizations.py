@@ -18,7 +18,8 @@ def visualize_sample(data, name='', idx=0):
     print(f"Saved: {filename}")
 
     plt.show() 
-def plot_loss(loss_values, name="topological_loss.png"):
+    
+def plot_loss(loss_values, name="topological_loss"):
     """Plots and saves the Topological Loss graph."""
     os.makedirs("plots", exist_ok=True)
     if not loss_values:
@@ -37,20 +38,18 @@ def plot_loss(loss_values, name="topological_loss.png"):
     plt.savefig(filename)
     plt.show()
 
-def plot_accuracy(accuracy_history, name="accuracy.png"):
-    """Plots and saves the Accuracy graph."""
-    if not accuracy_history:  
-        print("Warning: No accuracy data to plot!")
-        return
-    
-    os.makedirs("plots", exist_ok=True)
-    epochs = list(range(1, len(accuracy_history) + 1))  # Correct x-axis range
+def plot_accuracy(train_acc_hist, val_acc_hist, name="accuracy"):
+    """Plots training and validation accuracy over epochs."""
     plt.figure(figsize=(6, 4))
-    plt.plot(epochs, accuracy_history, label="Accuracy", linewidth=2)
+    epochs = list(range(len(train_acc_hist)))
+
+    plt.plot(epochs, train_acc_hist, label="Train Accuracy", linewidth=2)
+    plt.plot(epochs, val_acc_hist, label="Validation Accuracy", linestyle="dashed", linewidth=2)
+
     plt.axhline(y=90, color='gray', linestyle='dotted')
     plt.xlabel("Epochs")
-    plt.ylabel("Accuracy")
-    plt.title("Accuracy Over Training")
+    plt.ylabel("Accuracy (%)")
+    plt.title("Training & Validation Accuracy Over Training")
     plt.legend()
     filename = f"plots/{name}.png"
     plt.savefig(filename)

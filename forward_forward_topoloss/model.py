@@ -9,15 +9,16 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Net(nn.Module):
-    def __init__(self, dims, checkpoint_path="checkpoints/model_checkpoint.pth"):
+    def __init__(self, dims, checkpoint_dir="checkpoints"):
         super().__init__()
-        self.layers = []
         self.layers = nn.ModuleList([
             Layer(dims[d], dims[d + 1], last_layer=(d == len(dims) - 2)).to(device)
             for d in range(len(dims) - 1)
         ])
-        self.checkpoint_path = checkpoint_path
-        self.accuracy_history = []
+        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_path = self._generate_checkpoint_path(dims)
+        self.train_accuracy_history = []
+        self.val_accuracy_history = []  
         
     def predict(self, x):
         goodness_per_label = []
@@ -31,29 +32,43 @@ class Net(nn.Module):
         goodness_per_label = torch.cat(goodness_per_label, 1)
         return goodness_per_label.argmax(1)
 
-    def train(self, x_pos, x_neg):
-        """Trains all layers and saves the model after training."""
+    def train(self, x_pos, x_neg, y_train, x_val, y_val):
+        """Trains all layers, computes accuracy, and saves checkpoint after training."""
         h_pos, h_neg = x_pos, x_neg
-        acc = self.predict(x_pos).eq(torch.argmax(x_pos, dim=1)).float().mean().item() * 100
-        self.accuracy_history.append(acc)
-        
+
+        # Compute train accuracy before training
+        train_acc = self.predict(x_pos).eq(y_train).float().mean().item() * 100
+        self.train_accuracy_history.append(train_acc)
+
+        # Compute validation accuracy before training
+        val_acc = self.predict(x_val).eq(y_val).float().mean().item() * 100
+        self.val_accuracy_history.append(val_acc)
+
         for i, layer in enumerate(self.layers):
             print(f'Training layer {i}...')
             h_pos, h_neg = layer.train(h_pos, h_neg)
-        
+
+        # Compute final validation accuracy
+        final_train_acc = self.predict(x_pos).eq(y_train).float().mean().item() * 100
+        self.train_accuracy_history.append(final_train_acc)
+
+        final_val_acc = self.predict(x_val).eq(y_val).float().mean().item() * 100
+        self.val_accuracy_history.append(final_val_acc)
+
+        # Save model after training
         self.save_checkpoint()
     
-    def _generate_checkpoint_path(self, dims, lr):
+    def _generate_checkpoint_path(self, dims):
         """Generates a filename based on the model hyperparameters."""
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         layer_sizes = "_".join(map(str, dims))  
-        return f"{self.checkpoint_dir}/model_{layer_sizes}_lr{lr}.pth"
+        return f"{self.checkpoint_dir}/model_{layer_sizes}.pth"
         
     def save_checkpoint(self):
         """Saves model state after training with a descriptive filename."""
         checkpoint = {
             "model_state": self.state_dict(),
-            "accuracy_history": self.accuracy_history,
+            "accuracy_history": self.val_accuracy_history,
         }
         torch.save(checkpoint, self.checkpoint_path)
         print(f"Model saved: {self.checkpoint_path}")
@@ -63,11 +78,11 @@ class Net(nn.Module):
         if os.path.exists(self.checkpoint_path):
             checkpoint = torch.load(self.checkpoint_path)
             self.load_state_dict(checkpoint["model_state"])
-            self.accuracy_history = checkpoint["accuracy_history"]
+            self.val_accuracy_history = checkpoint["accuracy_history"]
             print(f"Loaded saved model: {self.checkpoint_path}")
 
     def get_accuracy_history(self):
-        return self.accuracy_history
+        return self.train_accuracy_history, self.val_accuracy_history
 
 class Layer(nn.Linear):
     def __init__(self, in_features, out_features,last_layer=False, num_epochs = 1000,

@@ -1,6 +1,6 @@
 import torch
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def train_and_evaluate(net, x, y, x_pos, x_neg, test_loader):
     """Train the model, compute accuracy, and generate plots."""
